@@ -61,7 +61,7 @@ Bounce debouncer_DahPin = Bounce();
 // Instantiate another Bounce object
 Bounce debouncer_DitPin = Bounce();
 
-int isKeyer = 0;    // always start as interface
+int isKeyer = 1;    // always start as interface
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -71,11 +71,15 @@ int isKeyer = 0;    // always start as interface
 //
 // Digital Pins
 //
-int         paddleReverse = 0;
-const int   DahPin          = 0;       // Dah paddle input or PTT
-const int   DitPin          = 1;       // Dit paddle input or KEY
-const int   ledPin        = 13;      //
-//
+int         paddleReverse = 1;
+const int   DahPin          = 10;      // Dah paddle input or PTT
+const int   DitPin          = 6;       // Dit paddle input or KEY
+const int   GndPin          = 8;       // Ground
+const int   ledPin          = 13;      //
+
+const int   cw_sound_out    = 4;      // square wave out corresponding to the CW out
+
+					  //
 ////////////////////////////////////////////////////////////////////////////////
 //
 //  keyerControl bit definitions
@@ -85,6 +89,7 @@ const int   ledPin        = 13;      //
 #define     DIT_PROC   0x04     // Dit is being processed
 #define     PDLSWAP    0x08     // 0 for normal, 1 for swap
 #define     IAMBICB    0x10     // 0 for Iambic A, 1 for Iambic B
+#define     IAMBICA    0x00     // 0 for Iambic A.
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -100,9 +105,9 @@ const int   ledPin        = 13;      //
 unsigned long       ditTime;                    // No. milliseconds per dit
 unsigned char       keyerControl;
 unsigned char       keyerState;
-unsigned int        wpm = 20;
-
-unsigned char       iambicMode = IAMBICB;       // or 0 for Iambic A
+unsigned int        wpm = 25;
+unsigned int        sidetone_freq = 800;        // 800 Hz
+unsigned char       iambicMode = IAMBICA;       // or 0 for Iambic A
  
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -123,7 +128,8 @@ void setup() {
  
     // Setup outputs
     pinMode(ledPin, OUTPUT);      // sets the digital pin as output
- 
+    pinMode(cw_sound_out, OUTPUT);
+
     // Setup control input pins
     // Setup the first button with an internal pull-up :
     pinMode(DahPin,INPUT_PULLUP);
@@ -136,7 +142,10 @@ void setup() {
     // After setting up the button, setup the Bounce instance :
     debouncer_DitPin.attach(DitPin);
     debouncer_DitPin.interval(5); // interval in ms
-  
+
+    pinMode(GndPin, OUTPUT);
+    digitalWrite(GndPin, LOW);
+
     digitalWrite(ledPin, LOW);   // turn the LED off
 
     setupIambic(isKeyer);
@@ -246,7 +255,11 @@ void keyerFunc()
         // Assert key down, start timing, state shared for dit or dah
         digitalWrite(ledPin, HIGH);         // turn the LED on
         usbMIDI.sendNoteOn(base_note+1, 99, keyerChannel);
-        ktimer += millis();                 // set ktimer to interval end time
+
+        // turn on the sound on the sidetone pin
+        tone(cw_sound_out, sidetone_freq);
+
+	ktimer += millis();                 // set ktimer to interval end time
         keyerControl &= ~(DIT_L + DAH_L);   // clear both paddle latch bits
         keyerState = KEYED;                 // next state
         break;
@@ -256,7 +269,11 @@ void keyerFunc()
         if (millis() > ktimer) {            // are we at end of key down ?
             digitalWrite(ledPin, LOW);      // turn the LED off
             usbMIDI.sendNoteOff(base_note+1, 0, keyerChannel);
-            ktimer = millis() + ditTime;    // inter-element time
+
+	    // turn off the sound
+	    noTone(cw_sound_out);
+
+	    ktimer = millis() + ditTime;    // inter-element time
             keyerState = INTER_ELEMENT;     // next state
         }
         else if (keyerControl & IAMBICB) {
