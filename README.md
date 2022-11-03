@@ -5,7 +5,7 @@ A simple Sketch for using the Teensy as a simple interface for connecting a stra
 
 See here for more information: https://dl3lsm.blogspot.com/2020/06/using-teensy-as-cw-keying-interface.html
 
-# VU2JXM modifications.
+# VU2JXN modifications.
 
 A stereo socket can be plugged into a small breadboard on which teensy
 also sits. The socket I plugged in makes the GPIO pin 6 and 10 as the
