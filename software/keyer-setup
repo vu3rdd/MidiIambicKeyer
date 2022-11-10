@@ -1,0 +1,17 @@
+#!/bin/sh
+
+# XXX: should first start jackd
+#/usr/bin/jackd -dalsa -dhw:0 -r48000 -p1024 -n2 -Xraw &
+
+./midicw &
+
+sleep 2
+
+#jack_connect system:midi_capture_1 midicw:midi_in
+#jack_connect midicw:audio_out system:playback_1
+
+# pipewire
+pw-link "Midi-Bridge:Teensyduino Teensy MIDI at usb-0000:00:14-0-2- full speed:(capture_0) Teensy MIDI Port 1" midicw:midi_in
+pw-link midicw:audio_out "alsa_output.pci-0000_00_1b.0.analog-stereo.4:playback_FL"
+# headphones instead?
+# pw-link midicw:audio_out "alsa_output.usb-0b0e_Jabra_BIZ_2400_USB_1C48F9112EB7x014100-00.analog-stereo:playback_FL"
